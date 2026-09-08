@@ -84,7 +84,7 @@ button:disabled {
 
 .field {
   width: 100%;
-  aspect-ratio: 60 / 40;
+  aspect-ratio: 60 / 70;
   background: #1b4d20;
   border-radius: 10px;
   touch-action: none;

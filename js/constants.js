@@ -1,9 +1,9 @@
 // Field is in meters. Attack advances toward increasing y.
 export const FIELD_WIDTH = 60;
-export const FIELD_HEIGHT = 40;
+export const FIELD_HEIGHT = 70;
 
 export const ATTACK_Y = 8;
-export const DEFENSE_GAP = 7; // real touch rugby onside distance, in meters
+export const DEFENSE_GAP = 12; // onside gap, in meters — pushed back further than the 7m regulation minimum for breathing room
 export const DEFENSE_Y = ATTACK_Y + DEFENSE_GAP;
 
 // Decorative field markings (mid-field zoom), purely visual — no gameplay

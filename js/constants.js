@@ -3,7 +3,17 @@ export const FIELD_WIDTH = 60;
 export const FIELD_HEIGHT = 40;
 
 export const ATTACK_Y = 8;
-export const DEFENSE_Y = 12;
+export const DEFENSE_GAP = 7; // real touch rugby onside distance, in meters
+export const DEFENSE_Y = ATTACK_Y + DEFENSE_GAP;
+
+// Decorative field markings (mid-field zoom), purely visual — no gameplay
+// logic reads these.
+export const HALFWAY_Y = DEFENSE_Y + 6;
+export const TEN_METRE_LINE_OFFSET = 10;
+
+// Tap (pass interaction) vs. drag (path recording) disambiguation.
+export const TAP_MAX_MOVEMENT = 1.5; // meters
+export const TAP_MAX_DURATION_MS = 350;
 
 export const ROLES = ['WING_A', 'NEAR_LINK', 'MID_A', 'MID_B', 'FAR_LINK', 'WING_B'];
 export const ROLE_LABELS = {

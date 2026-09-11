@@ -131,3 +131,16 @@ button:disabled {
   color: #ffab91;
   font-style: normal;
 }
+
+
+.presence-summary { margin-top: 0.35rem; color: #a6b0bb; font-size: 0.8rem; }
+.presence-panel { background: #1a222b; border-radius: 10px; padding: 1rem; }
+.presence-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.presence-heading h2 { margin: 0; font-size: 1.05rem; }
+.presence-heading button { padding: 0.35rem 0.65rem; font-size: 0.8rem; background: #384049; }
+.presence-name { margin: 0.55rem 0; color: #c3cbd4; }
+.online-list { margin: 0; padding-left: 1.25rem; color: #eef1f5; }
+.online-list li { margin: 0.25rem 0; }
+.online-list .presence-empty { color: #a6b0bb; list-style: none; margin-left: -1.25rem; }
+[data-state="connected"] { color: #66bb6a; }
+[data-state="offline-mode"] { color: #ffca7a; }

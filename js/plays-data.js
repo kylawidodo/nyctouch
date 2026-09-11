@@ -2,7 +2,8 @@ import { ROLES, BASE_X, ATTACK_Y } from './constants.js';
 
 function defaultStartPositions() {
   const positions = {};
-  for (const role of ROLES) positions[role] = { x: BASE_X[role], y: ATTACK_Y };
+  const depth = { WING_A: 0, NEAR_LINK: 2, MID_A: 4, MID_B: 4, FAR_LINK: 2, WING_B: 0 };
+  for (const role of ROLES) positions[role] = { x: BASE_X[role], y: ATTACK_Y + depth[role] };
   return positions;
 }
 

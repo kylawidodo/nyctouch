@@ -5,15 +5,18 @@ import { interpolateAt } from './geometry.js';
 // separately). Falls back to the play's starting ball holder before any pass.
 export function currentHolderAt(rep, playConfig, t) {
   let holder = playConfig.startingBallHolder;
-  for (const pass of rep.passes) {
-    if (pass.t <= t) holder = pass.to;
-    else break;
+  for (const action of (rep.actions || [])) {
+    if (action.t > t) break;
+    if (action.type === "dump") holder = null;
+    if (action.type === "pop") holder = action.player;
+    if (action.type === "pass") holder = action.to;
   }
   return holder;
 }
 
 export function ballPositionAt(rep, playConfig, t) {
   const holder = currentHolderAt(rep, playConfig, t);
+  if (!holder) return rep.dumpPosition || { x: BASE_X[playConfig.startingBallHolder], y: 0 };
   const path = rep.paths[holder];
   return interpolateAt(path, t) || { x: BASE_X[holder], y: 0 };
 }
@@ -31,11 +34,14 @@ export function getDefenderTrajectoryFn(playConfig, rep) {
     const baseY = DEFENSE_Y + (override.dy || 0);
     const { drift, maxShift } = DEFENSE_DRIFT[defRole];
 
-    const ballX = ballPositionAt(rep, playConfig, t).x;
+    const lagMs = { D_MID_A: 90, D_MID_B: 90, D_NEAR_LINK: 150, D_FAR_LINK: 150, D_WING_A: 220, D_WING_B: 220 }[defRole] || 150;
+    const trackedBall = ballPositionAt(rep, playConfig, Math.max(0, t - lagMs));
+    const ballX = trackedBall.x;
     const rawShift = drift * (ballX - ballX0);
     const shift = Math.max(-maxShift, Math.min(maxShift, rawShift));
 
-    return { x: baseX + shift, y: baseY };
+    const targetY = Math.max(DEFENSE_Y - 4, Math.min(baseY, trackedBall.y + 7));
+    return { x: baseX + shift, y: targetY };
   };
 }
 

@@ -98,6 +98,9 @@ export class Field {
     });
     this.flipGroup.appendChild(this.armedRingEl);
 
+    this.ballEl = el("ellipse", { rx: 1.4, ry: 2.1, fill: "#f4793b", stroke: "#fff5df", "stroke-width": 0.35, transform: "rotate(35)", style: "cursor: grab; pointer-events: all;", visibility: "hidden" });
+    this.flipGroup.appendChild(this.ballEl);
+
     for (const role of ROLES) {
       const c = el('circle', {
         r: OFFENSE_RADIUS, fill: '#1565c0', stroke: '#0d3c78', 'stroke-width': 0.2,
@@ -144,7 +147,7 @@ export class Field {
   _bindPointerEvents() {
     for (const role of ROLES) {
       const c = this.offenseEls[role];
-      c.addEventListener('pointerdown', (e) => {
+      c.addEventListener("pointerdown", (e) => {
         if (!this.recording) return;
         const p = this._toGameSpace(e.clientX, e.clientY);
         this.dragRole = role;
@@ -153,42 +156,89 @@ export class Field {
         c.setPointerCapture(e.pointerId);
       });
     }
-    this.svg.addEventListener('pointermove', (e) => {
-      if (!this.recording || !this.dragRole) return;
-      const role = this.dragRole;
+    this.ballEl.addEventListener("pointerdown", (e) => {
+      if (!this.recording || this.rep.ballStatus !== "carried") return;
+      this.dragBall = true;
+      this.ballEl.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+    });
+    this.svg.addEventListener("pointermove", (e) => {
+      if (!this.recording || (!this.dragRole && !this.dragBall)) return;
       const p = this._toGameSpace(e.clientX, e.clientY);
+      if (this.dragBall) { this.rep.ballPosition = p; this._setBallPosition(p.x, p.y); return; }
+      const role = this.dragRole;
       const t = performance.now() - this.rep.startedAt;
       this.rep.paths[role].push({ x: p.x, y: p.y, t });
       this._setDotPosition(role, p.x, p.y);
-
-      const moved = Math.hypot(p.x - this.dragStart.x, p.y - this.dragStart.y);
-      if (moved > TAP_MAX_MOVEMENT) this.dragMoved = true;
+      if (Math.hypot(p.x - this.dragStart.x, p.y - this.dragStart.y) > TAP_MAX_MOVEMENT) this.dragMoved = true;
     });
-    this.svg.addEventListener('pointerup', () => {
-      if (!this.recording || !this.dragRole) return;
+    this.svg.addEventListener("pointerup", (e) => {
+      if (!this.recording || (!this.dragRole && !this.dragBall)) return;
+      if (this.dragBall) {
+        const p = this._toGameSpace(e.clientX, e.clientY);
+        const target = ROLES.find((r) => { const q = this._currentPosition(r); return Math.hypot(p.x - q.x, p.y - q.y) <= 3; });
+        if (target) this._passTo(target);
+        else if (this.rep.dumpPosition) this._setBallPosition(this.rep.dumpPosition.x, this.rep.dumpPosition.y); else if (this.rep.ballCarrier) { const q = this._currentPosition(this.rep.ballCarrier); this._setBallPosition(q.x + 1.8, q.y + 1.8); }
+        this.dragBall = false;
+        return;
+      }
       const role = this.dragRole;
       const elapsed = performance.now() - this.dragStart.t;
       const wasTap = !this.dragMoved && elapsed <= TAP_MAX_DURATION_MS;
       this.dragRole = null;
       this.dragStart = null;
-      if (wasTap) {
-        const t = performance.now() - this.rep.startedAt;
-        this._handleTap(role, t);
-      }
+      if (wasTap) this._handleTap(role, performance.now() - this.rep.startedAt);
     });
   }
 
   _handleTap(role, t) {
     const holder = currentHolderAt(this.rep, this.play, t);
-    if (this.armedRole == null) {
-      if (role === holder) this.armedRole = role;
-      // tapping a non-holder while nothing is armed: no-op
-    } else if (role === this.armedRole) {
-      this.armedRole = null; // cancel
-    } else {
-      this.rep.passes.push({ from: this.armedRole, to: role, t });
-      this.armedRole = null;
+    if (this.rep.ballStatus === "carried" && role === holder) {
+      const position = this._currentPosition(role);
+      this.rep.ballStatus = "dumped";
+      this.rep.ballCarrier = null;
+      this.rep.dumpPosition = position;
+      this.rep.ballPosition = position;
+      this.rep.dumps.push({ player: role, t, position });
+      this.rep.actions.push({ type: "dump", player: role, t });
+      this._setBallPosition(position.x, position.y);
+      return;
     }
+    if (this.rep.ballStatus === "dumped") {
+      if (this.tapRole === role && t - this.tapTime <= 360) {
+        const position = this._currentPosition(role);
+        this.rep.ballStatus = "carried";
+        this.rep.ballCarrier = role;
+        this.rep.pops.push({ player: role, t, position });
+        this.rep.actions.push({ type: "pop", player: role, t });
+        this.tapRole = null;
+        this._setBallPosition(position.x + 1.8, position.y + 1.8);
+      } else {
+        this.tapRole = role;
+        this.tapTime = t;
+      }
+    }
+  }
+
+  _currentPosition(role) {
+    return { x: Number(this.offenseEls[role].getAttribute("cx")), y: Number(this.offenseEls[role].getAttribute("cy")) };
+  }
+
+  _setBallPosition(x, y) {
+    this.ballEl.setAttribute("cx", x);
+    this.ballEl.setAttribute("cy", y);
+    this.ballEl.setAttribute("visibility", "visible");
+  }
+
+  _passTo(role) {
+    if (this.rep.ballStatus !== "carried" || !this.rep.ballCarrier || role === this.rep.ballCarrier) return;
+    const from = this.rep.ballCarrier;
+    const t = performance.now() - this.rep.startedAt;
+    this.rep.passes.push({ from, to: role, t });
+    this.rep.actions.push({ type: "pass", from, to: role, t });
+    this.rep.ballCarrier = role;
+    const position = this._currentPosition(role);
+    this._setBallPosition(position.x + 1.8, position.y + 1.8);
   }
 
   loadPlay(playConfig) {
@@ -207,7 +257,9 @@ export class Field {
       const { x, y } = this.play.startPositions[role];
       paths[role] = [{ x, y, t: 0 }];
     }
-    this.rep = { playId: this.play.id, startedAt, paths, passes: [], endedAt: null };
+    this.tapRole = null;
+    this.tapTime = 0;
+    this.rep = { playId: this.play.id, startedAt, paths, passes: [], actions: [], dumps: [], pops: [], ballStatus: "carried", ballCarrier: this.play.startingBallHolder, dumpPosition: null, ballPosition: { ...this.play.startPositions[this.play.startingBallHolder] }, endedAt: null };
     this.recording = true;
     this._loop();
   }
@@ -232,18 +284,16 @@ export class Field {
     }
 
     const holder = currentHolderAt(this.rep, this.play, t);
-    const holderPos = { x: this.offenseEls[holder].getAttribute('cx'), y: this.offenseEls[holder].getAttribute('cy') };
-    this.holderRingEl.setAttribute('cx', holderPos.x);
-    this.holderRingEl.setAttribute('cy', holderPos.y);
-
-    if (this.armedRole) {
-      const armedPos = { x: this.offenseEls[this.armedRole].getAttribute('cx'), y: this.offenseEls[this.armedRole].getAttribute('cy') };
-      this.armedRingEl.setAttribute('cx', armedPos.x);
-      this.armedRingEl.setAttribute('cy', armedPos.y);
-      this.armedRingEl.setAttribute('visibility', 'visible');
-    } else {
-      this.armedRingEl.setAttribute('visibility', 'hidden');
+    if (holder) {
+      const holderPos = { x: this.offenseEls[holder].getAttribute("cx"), y: this.offenseEls[holder].getAttribute("cy") };
+      this.holderRingEl.setAttribute("cx", holderPos.x);
+      this.holderRingEl.setAttribute("cy", holderPos.y);
+      this._setBallPosition(Number(holderPos.x) + 1.8, Number(holderPos.y) + 1.8);
+    } else if (this.rep.dumpPosition) {
+      this._setBallPosition(this.rep.ballPosition.x, this.rep.ballPosition.y);
     }
+
+    this.armedRingEl.setAttribute("visibility", "hidden");
 
     this._raf = requestAnimationFrame(() => this._loop());
   }

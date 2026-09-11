@@ -1,9 +1,17 @@
 import { PLAYS } from './plays-data.js';
 import { evaluatePlay } from './checklist-engine.js';
 import { Field } from './field.js';
+import { Presence } from './presence.js';
 
 const svg = document.getElementById('field');
 const field = new Field(svg);
+const presence = new Presence({
+  listEl: document.getElementById('online-list'),
+  countEl: document.getElementById('online-count'),
+  stateEl: document.getElementById('connection-state'),
+  nameEl: document.getElementById('your-name'),
+  changeNameBtn: document.getElementById('change-name-btn'),
+});
 
 const playNameEl = document.getElementById('play-name');
 const playBriefEl = document.getElementById('play-brief');
@@ -67,3 +75,4 @@ doneBtn.addEventListener('click', () => {
 });
 
 renderIdle();
+presence.start();

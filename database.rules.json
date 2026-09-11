@@ -7,11 +7,13 @@
         ".validate": "newData.val() === null || (newData.child('uid').val() === auth.uid && newData.child('nickname').isString() && newData.child('nickname').val().length >= 1 && newData.child('nickname').val().length <= 24)"
       }
     },
-    "nicknameClaims": {
-      ".read": true,
-      "$nicknameKey": {
-        ".write": "auth != null && ((!data.exists() && newData.child('uid').val() === auth.uid) || (data.child('uid').val() === auth.uid && newData.val() === null))",
-        ".validate": "newData.val() === null || (newData.child('uid').val() === auth.uid)"
+    "waves": {
+      "$recipientUid": {
+        ".read": "auth != null && auth.uid === $recipientUid",
+        "$waveId": {
+          ".write": "auth != null && ((newData.val() === null && auth.uid === $recipientUid) || (newData.child('fromUid').val() === auth.uid && newData.child('toUid').val() === $recipientUid))",
+          ".validate": "newData.hasChildren(['fromUid', 'fromName', 'toUid', 'createdAt']) && newData.child('fromName').isString() && newData.child('fromName').val().length >= 1 && newData.child('fromName').val().length <= 24 && newData.child('toUid').val() === $recipientUid && newData.child('createdAt').isNumber()"
+        }
       }
     }
   }

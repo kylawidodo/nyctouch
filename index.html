@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NycTouch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>NycTouch</h1>
+    <p class="subtitle">Practice your team's plays — move the offense, pass the ball, attack the right shoulder.</p>
+  </header>
+
+  <main>
+    <div class="play-panel">
+      <h2 id="play-name">Press Start to get a play</h2>
+      <p id="play-brief"></p>
+      <div id="play-tips"></div>
+    </div>
+
+    <div class="controls">
+      <button id="start-btn">Start</button>
+      <button id="done-btn" disabled>Done</button>
+    </div>
+
+    <svg id="field" class="field"></svg>
+
+    <div id="results" class="results"></div>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
